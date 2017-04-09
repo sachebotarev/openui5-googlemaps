@@ -1,33 +1,34 @@
-sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './MapUtils'],
+sap.ui.define(["jquery.sap.global", "sap/ui/core/Control", "google.maps", "./MapUtils"],
     function(jQuery, Control, gmaps, utils) {
         "use strict";
 
-        var Polyline = Control.extend('openui5.googlemaps.Polyline', {
+        var Polyline = Control.extend("openui5.googlemaps.Polyline", {
             metadata: {
                 properties: {
-                    'strokeColor': {
+                    "strokeColor": {
                         type: "sap.ui.core.CSSColor",
                         group: "Appearance",
                         defaultValue: null
                     },
-                    'strokeOpacity': {
-                        type: 'float'
+                    "strokeOpacity": {
+                        type: "float"
                     },
-                    'strokeWeight': {
-                        type: 'float'
+                    "strokeWeight": {
+                        type: "float"
                     },
-                    'icons': {
-                        type: 'object'
-                    },
-                    'path': {
+                    "icons": {
                         type: "object"
                     },
-                    'visible': {
-                        type: 'boolean',
-                        bindable: 'bindable',
+                    "path": {
+                        type: "object",
+                        bindable: "bindable"
+                    },
+                    "visible": {
+                        type: "boolean",
+                        bindable: "bindable",
                         defaultValue: true
                     },
-                    'draggable': {
+                    "draggable": {
                         type: "boolean"
                     }
                 },
@@ -36,7 +37,7 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './Map
         });
 
         Polyline.prototype.setVisible = function(bValue) {
-            this.setProperty('visible', bValue, true);
+            this.setProperty("visible", bValue, true);
             if (this.polyline) {
                 this.polyline.setVisible(this.getVisible());
             }
@@ -45,22 +46,20 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './Map
         Polyline.prototype.parsePath = function() {
             var aPath = [];
 
-            this.getPath().forEach(function(obj) {
-                aPath.push(utils.objToLatLng(obj));
-            });
-
+            if (this.getPath()) {
+                this.getPath().forEach(function(obj) {
+                    aPath.push(utils.objToLatLng(obj));
+                });
+            }
             return aPath;
         };
 
         Polyline.prototype.createPolyline = function() {
             if (!this.polyline) {
-                this.polyline = new gmaps.Polyline(this.getOptions());
-                this.polyline.setMap(this.map);
-            } else {
-                this.polyline.setMap(this.map);
-                this.polyline.setOptions(this.getOptions());
+                this.polyline = new gmaps.Polyline();
             }
-
+            this.polyline.setMap(this.map);
+            this.polyline.setOptions(this.getOptions());
         };
 
         Polyline.prototype.getOptions = function() {
@@ -76,16 +75,13 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './Map
             return options;
         };
 
-        Polyline.prototype.onMapRendered = function(map) {
+        Polyline.prototype._mapRendered = function(map) {
             this.map = map;
             this.createPolyline();
         };
 
-        Polyline.prototype.onReset = function() {
-            this.reset();
-        };
-
         Polyline.prototype.reset = function() {
+            this.map = undefined;
             if (this.polyline) {
                 this.polyline.setMap(null);
             }

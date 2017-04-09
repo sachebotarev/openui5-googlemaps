@@ -1,30 +1,31 @@
-sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './markerclusterer'],
-    function(jQuery, Control, Gmaps, MarkerClusterer) {
+sap.ui.define(["jquery.sap.global", "sap/ui/core/Control", "google.maps", "openui5/googlemaps/MapUtils", "./markerclusterer"],
+    function(jQuery, Control, Gmaps, MapUtils, MarkerClusterer) {
         "use strict";
 
         MarkerClusterer = window.MarkerClusterer;
 
-        var MarkerCluster = Control.extend('openui5.googlemaps.MarkerCluster', {
+        var MarkerCluster = Control.extend("openui5.googlemaps.MarkerCluster", {
             metadata: {
                 properties: {
-                    'averageCenter': {
-                        type: 'boolean',
-                        bindable: 'bindable',
+                    "averageCenter": {
+                        type: "boolean",
+                        bindable: "bindable",
                         defaultValue: true
                     }
                 },
-                defaultAggregation: 'markers',
+                defaultAggregation: "markers",
                 aggregations: {
-                    'markers': {
-                        type: 'openui5.googlemaps.Marker',
+                    "markers": {
+                        type: "openui5.googlemaps.Marker",
                         multiple: true,
-                        bindable: 'bindable'
+                        bindable: "bindable"
                     }
                 },
                 events: {
-                    'click': {},
-                    'mouseover': {},
-                    'mouseout': {}
+                    "clusteringend": {},
+                    "click": {},
+                    "mouseover": {},
+                    "mouseout": {}
                 },
                 renderer: {}
             }
@@ -34,7 +35,7 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './mar
             this.aListeners = [];
         };
 
-        MarkerCluster.prototype.onMapRendered = function(map) {
+        MarkerCluster.prototype._mapRendered = function(map) {
             this.map = map;
             this.setClusterer();
         };
@@ -57,6 +58,12 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './mar
             });
         };
 
+        MarkerCluster.prototype.onClusteringEnd = function() {
+            this.fireClusteringend({
+                clusters: this.markerClusterer.getClusters()
+            });
+        };
+
         MarkerCluster.prototype._getMarkers = function() {
             var that = this;
             var aMarkers = [];
@@ -70,20 +77,46 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './mar
         };
 
         MarkerCluster.prototype.getOptions = function() {
-            var options = {};
+            var sModulePath = jQuery.sap.getModulePath("openui5.googlemaps.themes." + "base" /**sap.ui.getCore().getConfiguration().getTheme()*/); 
+            var sImagesPath = sModulePath + "/img";
+            var options = {
+                styles: [{
+                    height: 53,
+                    url: sImagesPath  + "/m1.png",
+                    width: 53
+                }, {
+                    height: 56,
+                    url: sImagesPath  + "/m2.png",
+                    width: 56
+                }, {
+                    height: 66,
+                    url: sImagesPath  + "/m3.png",
+                    width: 66
+                }, {
+                    height: 78,
+                    url: sImagesPath  + "/m4.png",
+                    width: 78
+                }, {
+                    height: 90,
+                    url: sImagesPath  + "/m5.png",
+                    width: 90
+                }]
+
+            };
             options.averageCenter = this.getAverageCenter();
             return options;
         };
 
         MarkerCluster.prototype.setClusterer = function() {
             this.markerClusterer = new MarkerClusterer(this.map, this._getMarkers(), this.getOptions());
-            this.addListener('click', jQuery.proxy(this.onClusterClick, this));
-            this.addListener('mouseover', jQuery.proxy(this.onClusterMouseover, this));
-            this.addListener('mouseout', jQuery.proxy(this.onClusterMouseout, this));
+            this.addListener("clusteringend", this.onClusteringEnd.bind(this));
+            this.addListener("click", this.onClusterClick.bind(this));
+            this.addListener("mouseover", this.onClusterMouseover.bind(this));
+            this.addListener("mouseout", this.onClusterMouseout.bind(this));
         };
 
-        MarkerCluster.prototype.addListener = function(event, callback, object) {
-            this.aListeners.push(Gmaps.event.addListener(this.markerClusterer, event, callback));
+        MarkerCluster.prototype.addListener = function(sEvent, fnCallback) {
+            this.aListeners.push(MapUtils.addListener(this.markerClusterer, sEvent, fnCallback));
         };
 
         MarkerCluster.prototype.removeListeners = function() {
@@ -99,10 +132,6 @@ sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './mar
                 this.removeListeners();
                 this.markerClusterer = undefined;
             }
-        };
-
-        MarkerCluster.prototype.onReset = function() {
-            this.reset();
         };
 
         MarkerCluster.prototype.exit = function() {

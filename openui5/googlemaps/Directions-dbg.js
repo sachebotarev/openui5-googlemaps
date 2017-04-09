@@ -1,30 +1,45 @@
 /**
  * openui5-googlemaps - OpenUI5 Google Maps library
- * @version v0.0.9
+ * @version v1.0.2
  * @link http://jasper07.github.io/openui5-googlemaps/
  * @license MIT
- */sap.ui.define(['jquery.sap.global', 'sap/ui/core/Control', 'google.maps', './TravelMode'],
-    function(jQuery, Control, gmaps, travelMode) {
+ */sap.ui.define(["jquery.sap.global", "sap/ui/core/Control", "google.maps", "./TravelMode", "./UnitSystem"],
+    function(jQuery, Control, gmaps, travelMode, unitSystem) {
         "use strict";
 
-        var Directions = Control.extend('openui5.googlemaps.Directions', {
+        var Directions = Control.extend("openui5.googlemaps.Directions", {
             metadata: {
                 properties: {
-                    'startAddress': {
+                    "startAddress": {
                         type: "string",
-                        bindable: 'bindable',
+                        bindable: "bindable",
                     },
-                    'endAddress': {
+                    "endAddress": {
                         type: "string",
-                        bindable: 'bindable',
+                        bindable: "bindable",
                     },
-                    'travelMode': {
+                    "travelMode": {
                         type: "string",
                         defaultValue: travelMode.driving
+                    },
+                    "optimizeWaypoints": {
+                        type: "boolean"
+                    },
+                    "unitSystem": {
+                        type: "string",
+                        defaultValue: unitSystem.metric
+                    }
+                },
+                defaultAggregation: "waypoints",
+                aggregations: {
+                    "waypoints": {
+                        type: "openui5.googlemaps.Waypoint",
+                        multiple: true,
+                        bindable: "bindable"
                     }
                 },
                 events: {
-                    'response': {}
+                    "response": {}
                 },
                 renderer: {}
             }
@@ -33,21 +48,37 @@
         //inspired by Polymer google-map-directions
 
         Directions.prototype.setStartAddress = function(sValue) {
-            this.setProperty('startAddress', sValue, true);
+            this.setProperty("startAddress", sValue, true);
             this.route();
         };
 
         Directions.prototype.setEndAddress = function(sValue) {
-            this.setProperty('endAddress', sValue, true);
+            this.setProperty("endAddress", sValue, true);
             this.route();
         };
 
         Directions.prototype.setTravelMode = function(sValue) {
-            this.setProperty('travelMode', sValue, true);
+            this.setProperty("travelMode", sValue, true);
             this.route();
         };
 
-        Directions.prototype.onMapRendered = function(map) {
+        Directions.prototype.setOptimizeWaypoints = function(bValue) {
+            this.setProperty("optimizeWaypoints", bValue, true);
+            this.route();
+        };
+
+        Directions.prototype.getWaypointLocations = function() {
+            var aLocation = [];
+            this.getWaypoints().forEach(function(oWaypoint) {
+                aLocation.push({
+                    location: oWaypoint.getLocation(),
+                    stopover: oWaypoint.getStopover()
+                });
+            });
+            return aLocation;
+        };
+
+        Directions.prototype._mapRendered = function(map) {
             this.map = map;
             this.mapChanged();
         };
@@ -72,6 +103,9 @@
             request.origin = this.getStartAddress();
             request.destination = this.getEndAddress();
             request.travelMode = this.getTravelMode();
+            request.unitSystem = this.getUnitSystem();
+            request.optimizeWaypoints = this.getOptimizeWaypoints();
+            request.waypoints = this.getWaypointLocations();
             return request;
         };
 
@@ -86,7 +120,7 @@
 
             jQuery.sap.clearDelayedCall(this.delayedCallId);
             this.delayedCallId = jQuery.sap.delayedCall(0, this, function() {
-                this.directionsService.route(this.getRequest(), jQuery.proxy(this.routeResponse, this));
+                this.directionsService.route(this.getRequest(), this.routeResponse.bind(this));
             });
         };
 
@@ -106,10 +140,6 @@
                 this.directions.setMap(null);
                 this.directions = null;
             }
-        };
-
-        Directions.prototype.onReset = function() {
-            this.reset();
         };
 
         Directions.prototype.exit = function() {

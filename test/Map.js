@@ -1,163 +1,330 @@
-/*global QUnit:true, module:true, test:true, asyncTest:true, expect:true, ok:true*/
-/*global start:true, stop:true ok:true, equal:true, notEqual:true, deepEqual:true*/
-/*global notDeepEqual:true, strictEqual:true, notStrictEqual:true, raises:true*/
-/*global openui5:true*/
-"use_strict";
+sap.ui.define(
+    [
+        "openui5/googlemaps/Map",
+        "openui5/googlemaps/MapsApi",
+        "openui5/googlemaps/MapUtils",
+        "openui5/googlemaps/MapTypeId",
+        "openui5/googlemaps/Marker",
+        "openui5/googlemaps/Polyline",
+        "openui5/googlemaps/Polygon",
+        "openui5/googlemaps/Directions",
+        "openui5/googlemaps/MarkerCluster",
+        "sap/ui/thirdparty/sinon",
+        "sap/ui/thirdparty/sinon-qunit"
+    ],
+    function(Map, MapsApi, MapUtils, MapTypeId, Marker, Polyline, Polygon, Directions, MarkerCluster) {
+        "use strict";
+        sinon.config.useFakeTimers = false;
 
-var MAP_ID = 'MAP_TEST';
-var MAP_POSITION = {};
-MAP_POSITION.lat = parseFloat("-33.895");
-MAP_POSITION.lng = parseFloat("151.275");
+        var MAP_ID = 'MAP_TEST';
+        var MAP_POSITION = {};
+        MAP_POSITION.lat = parseFloat("-33.895");
+        MAP_POSITION.lng = parseFloat("151.275");
 
-module("Map - defaults test");
-
-asyncTest("Object Creation and Destroy with Id", function() {
-
-    var testID = "MAP1";
-    var oMap = new openui5.googlemaps.Map(testID, {});
-
-    strictEqual(oMap.getId(), testID, "Map has ID: " + testID);
-    oMap.placeAt("uiArea2");
-
-
-    setTimeout(function() {
-
-        // find just created object byId
-        var oMap2 = sap.ui.getCore().byId(testID);
-        ok( !! oMap2, "Object created and found byId");
-
-        ok(oMap2.$().size() > 0, "DOM has some content")
-
-        // Destroy object
-        oMap2.destroy();
-        ok(oMap2.$().size() == 0, "DOM content destroyed")
-
-        // try to find destroyed object
-        setTimeout(function() {
-
-            var oMap3 = sap.ui.getCore().byId(testID);
-            ok(!oMap3, "UI5 Object cannot be found");
-
-            start();
-        }, 0);
-    }, 0);
-});
+        QUnit.module("Map - defaults test");
 
 
-module("Map Test Defaults");
+        QUnit.test("Object Creation and Destroy with Id", function(assert) {
 
-asyncTest("Default config test", function() {
-    var testID = "MAP3";
-    var oMap = new openui5.googlemaps.Map(testID, {});
+            // Arrange    
+            var sTestID = "MAP1";
+            var oMap = new Map(sTestID, {
+                lat: undefined,
+                lng: undefined
+            });
 
-    strictEqual(oMap.getLat(), undefined, "default latitude found ");
-    strictEqual(oMap.getLng(), undefined, "default longitude found ");
-    strictEqual(oMap.getDisableDefaultUI(), true, "disable default UI found ");
+            assert.strictEqual(oMap.getId(), sTestID, "Map has ID: " + sTestID);
+            oMap.placeAt("qunit-fixture");
 
-    oMap.placeAt("uiArea3");
-});
+            sap.ui.getCore().applyChanges();
+            var oMap2 = sap.ui.getCore().byId(sTestID);
 
-module("Map Options Test", {
-    setup: function() {
+            // Act
+            assert.ok(!!oMap2, "Object created and found byId");
+            assert.ok(oMap2.$().size() > 0, "DOM has some content");
+            assert.strictEqual(oMap.map, undefined, "no lat lng no map");
 
-    },
 
-    teardown: function() {}
-});
+            // Assert
+            // Destroy object
+            oMap2.destroy();
+            sap.ui.getCore().applyChanges();
 
-test("Default options test", function() {
-    var testID = "MAP3";
-    var oMap = new openui5.googlemaps.Map(testID, {});
+            assert.ok(oMap2.$().size() === 0, "DOM content destroyed");
 
-    var MapUtils = openui5.googlemaps.MapUtils;
-    ok(MapUtils.floatEqual(oMap.getLat(), 1), "default latitude found ");
-    ok(MapUtils.floatEqual(oMap.getLng(), 1), "default longitude found ");
-    strictEqual(oMap.getDisableDefaultUI(), true, "disable default UI found ");
-    strictEqual(oMap.getWidth(), "auto", "default width found");
-    strictEqual(oMap.getHeight(), "20em", "default height found");
-    strictEqual(oMap.getZoom(), 8, "default zoom found");
-    strictEqual(oMap.getMapTypeId(), 'roadmap', "default mapTypeID found");
-    strictEqual(oMap.getPanControl(), false, "default panControl found");
-    strictEqual(oMap.getMapTypeControl(), false, "default mapTypeControl found");
-    strictEqual(oMap.getStreetViewControl(), false, "default streetViewControl found");
-});
+            // try to find destroyed object
+            var oMap3 = sap.ui.getCore().byId(sTestID);
+            assert.ok(!oMap3, "UI5 Object cannot be found");
 
-test("Check map options", function() {
-    var oMap = sap.ui.getCore().byId(MAP_ID);
-    var MapUtils = openui5.googlemaps.MapUtils;
-    ok(MapUtils.floatEqual(oMap.getLat(), MAP_POSITION.lat), "set latitude found ");
-    ok(MapUtils.floatEqual(oMap.getLng(), MAP_POSITION.lng), "set longitude found ");
-    strictEqual(oMap.getDisableDefaultUI(), true, "disable default UI found ");
-    strictEqual(oMap.getWidth(), "auto", "default width found");
-    strictEqual(oMap.getHeight(), "20em", "default height found");
-    strictEqual(oMap.getZoom(), 8, "default zoom found");
-    strictEqual(oMap.getMapTypeId(), 'roadmap', "default mapTypeID found");
-    strictEqual(oMap.getPanControl(), false, "default panControl found");
-    strictEqual(oMap.getMapTypeControl(), false, "default mapTypeControl found");
-    strictEqual(oMap.getStreetViewControl(), false, "default streetViewControl found");
-});
+            oMap.destroy();
 
-test("Check goolemap object", function() {
-    var oMap = sap.ui.getCore().byId(MAP_ID).map;
-    var MapUtils = openui5.googlemaps.MapUtils;
-    ok(MapUtils.floatEqual(oMap.getCenter().lat(), MAP_POSITION.lat), "goolemap latitude found ");
-    ok(MapUtils.floatEqual(oMap.getCenter().lng(), MAP_POSITION.lng), "goolemap longitude found ");
-    strictEqual(oMap.disableDefaultUi, true, "goolemap default UI found ");
-    strictEqual(oMap.getDiv().style.width, "auto", "goolemap width found");
-    strictEqual(oMap.getDiv().style.height, "20em", "dgoolemap height found");
-    strictEqual(oMap.getZoom(), 8, "goolemap zoom found");
-    strictEqual(oMap.getMapTypeId(), 'roadmap', "goolemap mapTypeID found");
-    strictEqual(oMap.panControl, false, "goolemap panControl found");
-    strictEqual(oMap.mapTypeControl, false, "goolemap mapTypeControl found");
-    strictEqual(oMap.streetViewControl, false, "goolemap streetViewControl found");
-});
+        });
 
-asyncTest("Check changing intial values", function() {
-    var MapUtils = openui5.googlemaps.MapUtils;
-    var options = {};
-    options.lat = MAP_POSITION.lat;
-    options.lng = MAP_POSITION.lng;
-    options.disableDefaultUi = true;
-    options.width = "400px";
-    options.height = "200px";
-    options.zoom = 12;
-    options.mapTypeID = 'streetview';
-    options.panControl = true;
-    options.mapTypeControl = true;
-    options.streetViewControl = true;
 
-    var readyCallback = function(oEvent) {
-        var oMap = sap.ui.getCore().byId("MAP4");
-        if (this.changed === undefined) {
-            this.changed = true;
-            // start();
-            //check event data
-            ok(MapUtils.floatEqual(oEvent.getParameter('lat'), 1), "latitude in ready event");
-            ok(MapUtils.floatEqual(oEvent.getParameter('lng'), 1), "longitude in ready event");
-            ok((oEvent.getParameter('map')), "longitude in ready event");
+        QUnit.test("simulate latency on load", function(assert) {
+            var oMap = new Map();
+            var loadScriptsSpy = this.spy();
+            this.stub(google.maps, "loaded", undefined);
+            this.stub(jQuery.sap, "includeScript", loadScriptsSpy);
 
-            strictEqual(oMap.map.getDiv().style.width, options.width, "goolemap width found");
-            strictEqual(oMap.map.getDiv().style.height, options.height, "goolemap height found");
-            // stop();
+            // Act
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
 
+            //Assert
+            assert.strictEqual(oMap.subscribed, true, "subscribed to GMAPS load");
+            assert.strictEqual(loadScriptsSpy.callCount, 1, "include script called");
+            oMap.destroy();
+        });
+
+        QUnit.module("Map Test Options");
+
+        QUnit.test("Default config test", function(assert) {
+            // Arrange
+            var oMap = new Map();
+
+            // Assert
+            assert.strictEqual(oMap.getLat(), 1, "default latitude found ");
+            assert.strictEqual(oMap.getLng(), 1, "default longitude found ");
+            assert.strictEqual(oMap.getDisableDefaultUI(), true, "disable default UI found ");
+            assert.ok(MapUtils.floatEqual(oMap.getLat(), 1), "default latitude found ");
+            assert.ok(MapUtils.floatEqual(oMap.getLng(), 1), "default longitude found ");
+            assert.strictEqual(oMap.getDisableDefaultUI(), true, "disable default UI found ");
+            assert.strictEqual(oMap.getWidth(), "auto", "default width found");
+            assert.strictEqual(oMap.getHeight(), "20em", "default height found");
+            assert.strictEqual(oMap.getZoom(), 8, "default zoom found");
+            assert.strictEqual(oMap.getMapTypeId(), "roadmap", "default mapTypeID found");
+            assert.strictEqual(oMap.getPanControl(), false, "default panControl found");
+            assert.strictEqual(oMap.getMapTypeControl(), false, "default mapTypeControl found");
+            assert.strictEqual(oMap.getStreetViewControl(), false, "default streetViewControl found");
+            assert.strictEqual(oMap.getFitToMarkers(), false, "default fit to markers false");
+            oMap.destroy();
+        });
+
+        QUnit.test("Set goolemap options on creation", function(assert) {
+            // Arrange
+            var oMap = new Map({
+                lat: MAP_POSITION.lat,
+                lng: MAP_POSITION.lng,
+                width: "20em",
+                height: "10em",
+                zoom: 10,
+                disableDefaultUI: false,
+                mapTypeId: MapTypeId.TERRAIN,
+                fitToMarkers: true
+            });
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+            // Assert
+            assert.ok(MapUtils.floatEqual(oMap.getLat(), MAP_POSITION.lat), "set latitude found ");
+            assert.ok(MapUtils.floatEqual(oMap.getLng(), MAP_POSITION.lng), "set longitude found ");
+            assert.strictEqual(oMap.getDisableDefaultUI(), false, "enabled default UI found ");
+            assert.strictEqual(oMap.getWidth(), "20em", "set width found");
+            assert.strictEqual(oMap.getHeight(), "10em", "set height found");
+            assert.strictEqual(oMap.getZoom(), 10, "set zoom found");
+            assert.strictEqual(oMap.getMapTypeId(), 'terrain', "set mapTypeID found");
+            assert.strictEqual(oMap.getPanControl(), false, "default panControl found");
+            assert.strictEqual(oMap.getMapTypeControl(), false, "default mapTypeControl found");
+            assert.strictEqual(oMap.getStreetViewControl(), false, "default streetViewControl found");
+            assert.strictEqual(oMap.getFitToMarkers(), true, "fit to markers set");
+            oMap.destroy();
+        });
+
+        QUnit.test("Set goolemap options after creation", function(assert) {
+            // Arrange
+            assert.expect( 11 );
+            var delay = 1000;
+            var done = assert.async();
+            var oMap = new Map();
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+            // setTimeout(function(assert) {
+            // Act
             oMap.setLat(MAP_POSITION.lat);
             oMap.setLng(MAP_POSITION.lng);
-        } else {
-            start();
-            ok(MapUtils.floatEqual(oMap.map.getCenter().lat(), MAP_POSITION.lat), "goolemap latitude found");
-            ok(MapUtils.floatEqual(oMap.map.getCenter().lng(), MAP_POSITION.lng), "goolemap longitude found");
-            ok((oEvent.getParameter('map')), "map returned in changed event");
-            stop();
-        }
+            oMap.setDisableDefaultUI(false);
+            oMap.setWidth("20em");
+            oMap.setHeight("10em");
+            oMap.setZoom(10);
+            oMap.setMapTypeId(MapTypeId.HYBRID);
+            oMap.setPanControl(true);
+            oMap.setMapTypeControl(true);
+            oMap.setStreetViewControl(true);
+            oMap.setZoomControl(true);
+            sap.ui.getCore().applyChanges();
 
-    };
+            // Assert
+            setTimeout(function() {
+                assert.ok(MapUtils.floatEqual(oMap.getLat(), MAP_POSITION.lat), "set latitude found ");
+                assert.ok(MapUtils.floatEqual(oMap.getLng(), MAP_POSITION.lng), "set longitude found ");
+                assert.strictEqual(oMap.getDisableDefaultUI(), false, "enabled default UI found ");
+                assert.strictEqual(oMap.getWidth(), "20em", "set width found");
+                assert.strictEqual(oMap.getHeight(), "10em", "set height found");
+                assert.strictEqual(oMap.getZoom(), 10, "set zoom found");
+                assert.strictEqual(oMap.getMapTypeId(), 'hybrid', "set mapTypeID found");
+                assert.strictEqual(oMap.getPanControl(), true, "set panControl found");
+                assert.strictEqual(oMap.getMapTypeControl(), true, "set mapTypeControl found");
+                assert.strictEqual(oMap.getStreetViewControl(), true, "set streetViewControl found");
+                assert.strictEqual(oMap.getZoomControl(), true, "set ZoomControl found");
+                done();
+                oMap.destroy();
+            }, delay);
+            // }, delay);
 
-    var testID = "MAP4";
-    var oMap = new openui5.googlemaps.Map(testID, {
-        lat: 1,
-        lng: 1,
-        width: options.width,
-        height: options.height,
-        ready: readyCallback,
-    }).placeAt("uiArea2");
-});
+
+        });
+
+        QUnit.module("Map Test Events");
+
+        QUnit.test("zoom changed", function(assert) {
+            // Arrange
+            var oMap = new Map();
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+            // Act
+            oMap.map.setZoom(5);
+            oMap.map.setMapTypeId(MapTypeId.HYBRID);
+            sap.ui.getCore().applyChanges();
+
+            // Assert
+            assert.strictEqual(oMap.getZoom(), 5, "set zoom found");
+            assert.strictEqual(oMap.getMapTypeId(), 'hybrid', "set mapTypeID found");
+            oMap.destroy();
+        });
+
+        QUnit.test("dragging", function(assert) {
+            // Arrange
+            var delay = 500;
+            var done = assert.async();
+            var oMap = new Map();
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+            // Assert
+            oMap.isDragging(true);
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+            // Assert
+            setTimeout(function() {
+                assert.strictEqual(oMap._dragging, false, "has stopped dragging");
+
+                done();
+                oMap.destroy();
+            }, delay);
+
+        });
+
+        QUnit.test("ready event", function(assert) {
+            // Arrange
+            var done = assert.async();
+            var delay = 1000;
+            var readySpy = this.spy();
+            var oMap = new Map({
+                ready: readySpy
+
+            });
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+            // Assert
+            setTimeout(function() {
+                assert.strictEqual(readySpy.callCount, 1, "Ready event called");
+                done();
+                oMap.destroy(); // Clean up
+            }, delay);
+        });
+
+        QUnit.test("click event", function(assert) {
+            // Arrange
+            var done = assert.async();
+            var delay = 10;
+            var clickSpy = this.spy();
+
+            var oMap = new Map({
+                click: clickSpy
+
+            });
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+            // Act
+            // fire a click on the map
+            oMap.trigger("click", { latLng: MapUtils.objToLatLng(MAP_POSITION) });
+
+            // Assert
+            setTimeout(function() {
+                assert.strictEqual(clickSpy.callCount, 1, "Click event called");
+                done();
+                oMap.destroy(); // Clean up
+            }, delay);
+        });
+
+        QUnit.test("notify aggregations", function(assert) {
+            // Arrange
+            var done = assert.async();
+            var delay = 100;
+            var aPath = [{
+                lat: MAP_POSITION.lat,
+                lng: MAP_POSITION.lng
+            }];
+            var oMap = new Map({
+                markers: new Marker(),
+                polylines: new Polyline({
+                    path: aPath
+                }),
+                polygons: new Polygon({
+                    paths: aPath
+                }),
+                directions: new Directions(),
+                markerCluster: new MarkerCluster(),
+            });
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+
+            // Assert
+            setTimeout(function() {
+                assert.strictEqual(oMap.getMarkers().length, 1, "has one marker");
+                assert.strictEqual(oMap.getPolylines().length, 1, "has one polyline");
+                assert.strictEqual(oMap.getPolygons().length, 1, "has one polygon");
+                assert.strictEqual(!!oMap.getDirections(), true, "has one direction");
+                assert.strictEqual(!!oMap.getMarkerCluster(), true, "has one marker cluster");
+                done();
+                oMap.destroy();
+            }, delay);
+        });
+
+
+
+
+        QUnit.module("Map - test map Api");
+
+
+        QUnit.test("test loading google maps library from map control", function(assert) {
+            // arrange
+            var done = assert.async();
+            var delay = 100;
+            this.stub(google.maps, "loaded", undefined);
+
+            var oLoadSpy = this.spy();
+            this.stub(MapsApi.prototype, "load", oLoadSpy);
+
+            // act
+            var oMap = new Map({});
+
+            oMap.placeAt("qunit-fixture");
+            sap.ui.getCore().applyChanges();
+
+            // Assert
+            setTimeout(function() {
+                assert.strictEqual(oLoadSpy.callCount, 1, "maps api load was called");
+                done();
+                oMap.destroy();
+            }, delay);
+        });
+
+    });
